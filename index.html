@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Test veu japonesa</title>
+<style>
+  body { font-family: sans-serif; background: #1a1a1a; color: #fff; padding: 20px; max-width: 500px; margin: 0 auto; }
+  h2 { font-size: 18px; margin-bottom: 8px; }
+  p { color: #aaa; font-size: 13px; margin-bottom: 20px; }
+  button { display: block; width: 100%; padding: 16px; margin-bottom: 12px; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; }
+  .btn-a { background: #2a6ee8; color: #fff; }
+  .btn-b { background: #1a8a4a; color: #fff; }
+  .btn-c { background: #8a4a1a; color: #fff; }
+  .btn-d { background: #555; color: #fff; }
+  #log { background: #111; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; color: #0f0; min-height: 80px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h2>Test síntesi de veu — iOS 27</h2>
+<p>Toca cada botó i comprova si sents l'àudio. El log mostrarà què passa.</p>
+
+<button class="btn-a" onclick="testA()">A — speak() directe (sense cancel)</button>
+<button class="btn-b" onclick="testB()">B — cancel() + speak() síncron</button>
+<button class="btn-c" onclick="testC()">C — cancel() + speak() amb setTimeout(0)</button>
+<button class="btn-d" onclick="testD()">D — Veu japonesa explícita (ja-JP)</button>
+
+<div id="log">Esperant...</div>
+
+<script>
+const log = document.getElementById('log');
+function lg(msg) {
+  const t = new Date().toLocaleTimeString('ca', {hour12:false});
+  log.textContent = t + ' ' + msg + '\n' + log.textContent;
+}
+
+function speak(text, label) {
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'ja-JP';
+  u.rate = 0.85;
+  u.onstart = () => lg(label + ': onstart ✓');
+  u.onend = () => lg(label + ': onend ✓');
+  u.onerror = (e) => lg(label + ': ERROR → ' + e.error);
+  window.speechSynthesis.speak(u);
+  lg(label + ': speak() cridat');
+}
+
+function testA() {
+  lg('--- TEST A ---');
+  speak('こんにちは', 'A');
+}
+
+function testB() {
+  lg('--- TEST B ---');
+  window.speechSynthesis.cancel();
+  speak('ありがとうございます', 'B');
+}
+
+function testC() {
+  lg('--- TEST C ---');
+  window.speechSynthesis.cancel();
+  setTimeout(() => speak('すみません', 'C'), 0);
+}
+
+function testD() {
+  lg('--- TEST D ---');
+  const voices = window.speechSynthesis.getVoices();
+  const jaVoice = voices.find(v => v.lang.startsWith('ja'));
+  lg('Veus ja-JP trobades: ' + voices.filter(v=>v.lang.startsWith('ja')).map(v=>v.name).join(', '));
+  const u = new SpeechSynthesisUtterance('よろしくお願いします');
+  u.lang = 'ja-JP';
+  if (jaVoice) { u.voice = jaVoice; lg('Veu assignada: ' + jaVoice.name); }
+  u.onstart = () => lg('D: onstart ✓');
+  u.onend = () => lg('D: onend ✓');
+  u.onerror = (e) => lg('D: ERROR → ' + e.error);
+  window.speechSynthesis.cancel();
+  setTimeout(() => window.speechSynthesis.speak(u), 50);
+}
+
+// Info inicial
+window.addEventListener('load', () => {
+  const supported = 'speechSynthesis' in window;
+  lg('speechSynthesis suportat: ' + supported);
+  if (supported) {
+    const v = window.speechSynthesis.getVoices();
+    lg('Veus disponibles ara: ' + v.length);
+  }
+});
+</script>
+</body>
+</html>
